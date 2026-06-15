@@ -17,6 +17,42 @@ def add_application(company, position, status, date_applied, notes):
     conn.commit()
     conn.close()
 
+# Delete function
+def delete_application(app_id):
+    """
+    Deletes a job application by ID
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        "DELETE FROM applications WHERE id = ?",
+        (app_id,)
+    )
+
+    conn.commit()
+    conn.close()
+
+# Update function
+def update_application(app_id, company, position, status, date_applied, notes):
+    """
+    Updates an existing job application
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE applications
+        SET company = ?,
+            position = ?,
+            status = ?,
+            date_applied = ?,
+            notes = ?
+        WHERE id = ?
+    """, (company, position, status, date_applied, notes, app_id))
+
+    conn.commit()
+    conn.close()
 
 # READ (ALL)
 def get_all_applications():
