@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import plotly.express as px
 
 from services.application_service import (
     add_application,
@@ -35,25 +36,116 @@ st.divider()
 # Dashboard
 st.header("📋 Applications Dashboard")
 
+# Search Bar
+search_term = st.text_input("🔍 Search by company or position")
+
+# Status Filter
+selected_status = st.selectbox(
+    "Filter by Status",
+    ["All", "Applied", "Interview", "Rejected", "Offer"]
+)
+
+# Retrieves Data
 data = get_all_applications()
 
-if not data:
-    st.info("No applications yet.")
+# Analytics
+total_count = len(data)
+applied_count = sum(1 for app in data if app[3] == "Applied")
+interview_count = sum(1 for app in data if app[3] == "Interview")
+rejected_count = sum(1 for app in data if app[3] == "Rejected")
+offer_count = sum(1 for app in data if app[3] == "Offer")
+
+# Analytic Cards
+st.subheader("📈 Analytics")
+
+col1, col2, col3, col4, col5 = st.columns(5)
+
+with col1:
+    st.metric("Total", total_count)
+with col2:
+    st.metric("Applied", applied_count)
+with col3:
+    st.metric("Interview", interview_count)
+with col4:
+    st.metric("Rejected", rejected_count)
+with col5:
+    st.metric("Offer", offer_count)
+st.divider()
+
+status_counts = {
+    "Applied": applied_count,
+    "Interview": interview_count,
+    "Rejected": rejected_count,
+    "Offer": offer_count
+}
+
+# Charts
+chart_df = pd.DataFrame(
+    status_counts.items(),
+    columns=["Status", "Count"]
+)
+
+fig = px.pie(
+    chart_df,
+    values="Count",
+    names="Status",
+    title="Applications by Status"
+)
+
+st.plotly_chart(
+    fig,
+    use_container_width=True
+)
+
+st.divider()
+
+# Search and Filters
+filtered_data = []
+
+for app in data:
+    company_name = app[1]
+    position_name = app[2]
+    status_value = app[3]
+
+    matches_search = (
+        search_term.lower() in company_name.lower()
+        or search_term.lower() in position_name.lower()
+    )
+    matches_status = (
+        selected_status == "All"
+        or status_value == selected_status
+    )
+    if matches_search and matches_status:
+        filtered_data.append(app)
+
+# Display table
+if not filtered_data:
+    st.info("No matching applications found.")
 else:
     # Table View
     df = pd.DataFrame(
-        data,
+        filtered_data,
         columns=["ID", "Company", "Position", "Status", "Date Applied", "Notes"]
     )
 
     st.dataframe(df, use_container_width=True)
+    
+    # Export applications to CSV
+    csv = df.to_csv(index=False)
+
+    st.download_button(
+        label="⬇ Download Applications as CSV",
+        data=csv,
+        file_name="applications.csv",
+        mime="text/csv"
+    )
 
     st.divider()
 
     # Row Action (Edit + Delete)
     st.subheader("Manage Applications")
 
-    for app in data:
+    for app in filtered_data:
 
         app_id = app[0]
         company_name = app[1]
@@ -123,7 +215,8 @@ if "edit_id" in st.session_state:
     key=f"notes_edit_{edit_id}"
     )  
      
-if st.button("Save Changes"):
+    if st.button("Save Changes",
+                 key=f"save_{edit_id}"):
         update_application(
             edit_id,
             company_edit,
