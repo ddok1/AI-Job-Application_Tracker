@@ -21,12 +21,12 @@ company = st.text_input("Company")
 position = st.text_input("Position")
 
 status = st.selectbox("Status", ["Applied", "Interview", "Rejected", "Offer"])
-date_applied = st.text_input("Date Applied (YYYY-MM-DD)")
+date_applied = st.date_input("Date Applied")
 notes = st.text_area("Notes")
 
 if st.button("Add Application"):
     if company and position:
-        add_application(company, position, status, date_applied, notes)
+        add_application(company, position, status, str(date_applied), notes)
         st.success("Application added!")
         st.rerun()
     else:
@@ -45,6 +45,12 @@ selected_status = st.selectbox(
     ["All", "Applied", "Interview", "Rejected", "Offer"]
 )
 
+# Sorting (Status Filter)
+sort_by = st.selectbox(
+    "Sort By",
+    ["Date Applied", "Company", "Status"]
+)
+
 # Retrieves Data
 data = get_all_applications()
 
@@ -55,10 +61,18 @@ interview_count = sum(1 for app in data if app[3] == "Interview")
 rejected_count = sum(1 for app in data if app[3] == "Rejected")
 offer_count = sum(1 for app in data if app[3] == "Offer")
 
+# Rates
+interview_rate = 0
+offer_rate = 0
+
+if total_count > 0:
+    interview_rate = round(interview_count / total_count * 100, 1)
+    offer_rate = round(offer_count / total_count * 100, 1)
+
 # Analytic Cards
 st.subheader("📈 Analytics")
 
-col1, col2, col3, col4, col5 = st.columns(5)
+col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
 
 with col1:
     st.metric("Total", total_count)
@@ -70,6 +84,10 @@ with col4:
     st.metric("Rejected", rejected_count)
 with col5:
     st.metric("Offer", offer_count)
+with col6:
+    st.metric("Interview %", f"{interview_rate}%")
+with col7:
+    st.metric("Offer %", f"{offer_rate}%")
 st.divider()
 
 status_counts = {
@@ -96,6 +114,79 @@ st.plotly_chart(
     fig,
     use_container_width=True
 )
+company_df = pd.DataFrame(
+    data,
+    columns=[
+        "ID",
+        "Company",
+        "Position",
+        "Status",
+        "Date Applied",
+        "Notes"
+    ]
+)
+
+company_counts = (
+    company_df["Company"]
+    .value_counts()
+    .reset_index()
+)
+
+company_counts.columns = [
+    "Company",
+    "Applications"
+]
+
+company_fig = px.bar(
+    company_counts,
+    x="Company",
+    y="Applications",
+    title="Top Companies Applied To"
+)
+
+st.plotly_chart(
+    company_fig,
+    use_container_width=True
+)
+
+company_df["Date Applied"] = pd.to_datetime(
+    company_df["Date Applied"]
+)
+
+company_df["Month"] = (
+    company_df["Date Applied"]
+    .dt.strftime("%Y-%m")
+)
+
+monthly_counts = (
+    company_df.groupby("Month")
+    .size()
+    .reset_index(name="Applications")
+)
+
+trend_fig = px.line(
+    monthly_counts,
+    x="Month",
+    y="Applications",
+    title="Monthly Application Trend"
+)
+
+st.plotly_chart(
+    trend_fig,
+    use_container_width=True
+)
+
+bar_fig = px.bar(
+    chart_df,
+    x="Status",
+    y="Count",
+    title="Application Status Distribution"
+)
+
+st.plotly_chart(
+    bar_fig,
+    use_container_width=True
+)
 
 st.divider()
 
@@ -118,6 +209,14 @@ for app in data:
     if matches_search and matches_status:
         filtered_data.append(app)
 
+# Sort Applications
+if sort_by == "Company":
+    filtered_data.sort(key=lambda x: x[1])
+elif sort_by == "Status":
+    filtered_data.sort(key=lambda x: x[3])
+else:
+    filtered_data.sort(key=lambda x: x[4], reverse=True)
+    
 # Display table
 if not filtered_data:
     st.info("No matching applications found.")
@@ -159,7 +258,8 @@ else:
         # Display Info
         with col1:
             st.write(f"**{company_name}** | {position_name} | {status_value} | {date_value}")
-            st.caption(notes_value)
+            with st.expander("Notes"):
+                st.write(notes_value)
 
         # Edit button
         with col2:
@@ -203,9 +303,9 @@ if "edit_id" in st.session_state:
     key=f"status_edit_{edit_id}"
     )
 
-    date_edit = st.text_input(
+    date_edit = st.date_input(
     "Date Applied",
-    record[4],
+    value=pd.to_datetime(record[4]),
     key=f"date_edit_{edit_id}"
     )
 
