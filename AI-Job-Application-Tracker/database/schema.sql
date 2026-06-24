@@ -4,5 +4,6 @@ CREATE TABLE IF NOT EXISTS applications (
     position TEXT NOT NULL,
     status TEXT NOT NULL,
     date_applied TEXT,
+    deadline TEXT,
     notes TEXT
 );

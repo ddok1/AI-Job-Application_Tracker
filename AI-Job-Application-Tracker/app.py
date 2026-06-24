@@ -22,11 +22,12 @@ position = st.text_input("Position")
 
 status = st.selectbox("Status", ["Applied", "Interview", "Rejected", "Offer"])
 date_applied = st.date_input("Date Applied")
+deadline = st.dat_input("Application Deadline")
 notes = st.text_area("Notes")
 
 if st.button("Add Application"):
     if company and position:
-        add_application(company, position, status, str(date_applied), notes)
+        add_application(company, position, status, str(date_applied), str(deadline),notes)
         st.success("Application added!")
         st.rerun()
     else:
@@ -103,6 +104,7 @@ chart_df = pd.DataFrame(
     columns=["Status", "Count"]
 )
 
+# Distribution of Application Statuses
 fig = px.pie(
     chart_df,
     values="Count",
@@ -114,6 +116,8 @@ st.plotly_chart(
     fig,
     use_container_width=True
 )
+
+# Data Frame from all applications
 company_df = pd.DataFrame(
     data,
     columns=[
@@ -122,10 +126,12 @@ company_df = pd.DataFrame(
         "Position",
         "Status",
         "Date Applied",
+        "Deadline",
         "Notes"
     ]
 )
 
+# Number of applications sent to each company
 company_counts = (
     company_df["Company"]
     .value_counts()
@@ -136,7 +142,7 @@ company_counts.columns = [
     "Company",
     "Applications"
 ]
-
+# Bar Chart
 company_fig = px.bar(
     company_counts,
     x="Company",
@@ -149,21 +155,25 @@ st.plotly_chart(
     use_container_width=True
 )
 
+# Convert date strings into dateime objects
 company_df["Date Applied"] = pd.to_datetime(
     company_df["Date Applied"]
 )
 
+# Extract month and year from each application date
 company_df["Month"] = (
     company_df["Date Applied"]
     .dt.strftime("%Y-%m")
 )
 
+# Counts applications sumbitted each month
 monthly_counts = (
     company_df.groupby("Month")
     .size()
     .reset_index(name="Applications")
 )
 
+# Line Chart showing application activity
 trend_fig = px.line(
     monthly_counts,
     x="Month",
@@ -176,6 +186,7 @@ st.plotly_chart(
     use_container_width=True
 )
 
+# Bar chart displaying number of application per status
 bar_fig = px.bar(
     chart_df,
     x="Status",
@@ -251,11 +262,38 @@ else:
         position_name = app[2]
         status_value = app[3]
         date_value = app[4]
-        notes_value = app[5]
+        deadline_value = app[5]
+        notes_value = app[6]
+
+        #Calculate days until deadline
+        days_remaining = (
+            pd.to_datetime(deadline_value)
+            - pd.Timestamp.today()
+        ).days
 
         col1, col2, col3 = st.columns([4, 1, 1])
 
         # Display Info
+        with col1:
+            st.write(
+                f"**{company_name}** | "
+                f"{position_name} | "
+                f"{status_value}"
+            )
+
+            if days_remaining < 0:
+                st.error(f"Deadline passed ({abs(days_remaining)} days ago)")
+            elif days_remaining <= 7:
+                st.warning(f"{days_remaining} days remaining")
+            else:
+                st.success(f"{days_remaining} days remaining")
+                
+            st.caption(
+                f"Applied: {date_value} | Deadline: {deadline_value}"
+            )
+
+    with st.expander("Notes"):
+        st.write(notes_value)
         with col1:
             st.write(f"**{company_name}** | {position_name} | {status_value} | {date_value}")
             with st.expander("Notes"):
