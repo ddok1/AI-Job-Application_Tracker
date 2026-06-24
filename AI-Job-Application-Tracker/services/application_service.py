@@ -11,7 +11,7 @@ def add_application(company, position, status, date_applied, deadline, notes):
 
     cursor.execute("""
         INSERT INTO applications (company, position, status, date_applied, deadline, notes)
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?)
     """, (company, position, status, date_applied, deadline, notes))
 
     conn.commit()
@@ -34,7 +34,7 @@ def delete_application(app_id):
     conn.close()
 
 # Update function
-def update_application(app_id, company, position, status, date_applied, notes):
+def update_application(app_id, company, position, status, date_applied, deadline, notes):
     """
     Updates an existing job application
     """
@@ -47,9 +47,10 @@ def update_application(app_id, company, position, status, date_applied, notes):
             position = ?,
             status = ?,
             date_applied = ?,
+            deadline = ?,
             notes = ?
         WHERE id = ?
-    """, (company, position, status, date_applied, notes, app_id))
+    """, (company, position, status, date_applied, notes, deadline, app_id))
 
     conn.commit()
     conn.close()

@@ -22,7 +22,7 @@ position = st.text_input("Position")
 
 status = st.selectbox("Status", ["Applied", "Interview", "Rejected", "Offer"])
 date_applied = st.date_input("Date Applied")
-deadline = st.dat_input("Application Deadline")
+deadline = st.date_input("Application Deadline")
 notes = st.text_area("Notes")
 
 if st.button("Add Application"):
@@ -287,7 +287,7 @@ else:
                 st.warning(f"{days_remaining} days remaining")
             else:
                 st.success(f"{days_remaining} days remaining")
-                
+
             st.caption(
                 f"Applied: {date_value} | Deadline: {deadline_value}"
             )
