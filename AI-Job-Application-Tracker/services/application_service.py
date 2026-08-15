@@ -34,7 +34,15 @@ def delete_application(app_id):
     conn.close()
 
 # Update function
-def update_application(app_id, company, position, status, date_applied, deadline, notes):
+def update_application(
+    app_id,
+    company,
+    position,
+    status,
+    date_applied,
+    deadline,
+    notes
+):
     """
     Updates an existing job application
     """
@@ -50,7 +58,15 @@ def update_application(app_id, company, position, status, date_applied, deadline
             deadline = ?,
             notes = ?
         WHERE id = ?
-    """, (company, position, status, date_applied, notes, deadline, app_id))
+    """, (
+        company,
+        position,
+        status,
+        date_applied,
+        deadline,
+        notes,
+        app_id
+    ))
 
     conn.commit()
     conn.close()

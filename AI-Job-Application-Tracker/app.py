@@ -2,12 +2,17 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
+from database.db import init_db
+
 from services.application_service import (
     add_application,
     get_all_applications,
     delete_application,
     update_application
 )
+
+# Initialize database
+init_db()
 
 # Page Configuration
 st.set_page_config(page_title="AI Job Tracker", layout="wide")
@@ -27,7 +32,14 @@ notes = st.text_area("Notes")
 
 if st.button("Add Application"):
     if company and position:
-        add_application(company, position, status, str(date_applied), str(deadline),notes)
+        add_application(
+            company,
+            position,
+            status,
+            str(date_applied),
+            str(deadline),
+            notes
+        )
         st.success("Application added!")
         st.rerun()
     else:
@@ -49,7 +61,13 @@ selected_status = st.selectbox(
 # Sorting (Status Filter)
 sort_by = st.selectbox(
     "Sort By",
-    ["Date Applied", "Company", "Status"]
+    ["Date Applied", "Company", "Status", "Deadline"]
+)
+
+# Deadline Filter
+deadline_filter = st.selectbox(
+    "Deadline Filter",
+    ["All", "Due Today", "Due Soon", "Overdue"]
 )
 
 # Retrieves Data
@@ -70,10 +88,33 @@ if total_count > 0:
     interview_rate = round(interview_count / total_count * 100, 1)
     offer_rate = round(offer_count / total_count * 100, 1)
 
+# Deadline Analytics
+overdue_count = 0
+due_today_count = 0
+due_soon_count = 0
+upcoming_count = 0
+
+for app in data:
+    deadline_value = app[5]
+
+    days_remaining = (
+        pd.to_datetime(deadline_value)
+        - pd.Timestamp.today().normalize()
+    ).days
+
+    if days_remaining < 0:
+        overdue_count += 1
+    elif days_remaining == 0:
+        due_today_count += 1
+    elif days_remaining <= 7:
+        due_soon_count += 1
+    else:
+        upcoming_count += 1
+
 # Analytic Cards
 st.subheader("📈 Analytics")
 
-col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
+col1, col2, col3, col4, col5, col6, col7, col8, col9, col10 = st.columns(10)
 
 with col1:
     st.metric("Total", total_count)
@@ -89,6 +130,12 @@ with col6:
     st.metric("Interview %", f"{interview_rate}%")
 with col7:
     st.metric("Offer %", f"{offer_rate}%")
+with col8:
+    st.metric("Overdue", overdue_count)
+with col9:
+    st.metric("Due Today", due_today_count)
+with col10:
+    st.metric("Due Soon", due_soon_count)
 st.divider()
 
 status_counts = {
@@ -208,6 +255,7 @@ for app in data:
     company_name = app[1]
     position_name = app[2]
     status_value = app[3]
+    deadline_value = app[5]
 
     matches_search = (
         search_term.lower() in company_name.lower()
@@ -217,7 +265,29 @@ for app in data:
         selected_status == "All"
         or status_value == selected_status
     )
-    if matches_search and matches_status:
+    # Calculate Deadline Status
+    days_remaining = (
+        pd.to_datetime(deadline_value)
+        - pd.Timestamp.today().normalize()
+    ).days
+
+    matches_deadline = (
+    deadline_filter == "All"
+    or (
+        deadline_filter == "Due Today"
+        and days_remaining == 0
+    )
+    or (
+        deadline_filter == "Due Soon"
+        and 1 <= days_remaining <= 7
+    )
+    or (
+        deadline_filter == "Overdue"
+        and days_remaining < 0
+    )
+)
+    
+    if matches_search and matches_status and matches_deadline:
         filtered_data.append(app)
 
 # Sort Applications
@@ -225,6 +295,8 @@ if sort_by == "Company":
     filtered_data.sort(key=lambda x: x[1])
 elif sort_by == "Status":
     filtered_data.sort(key=lambda x: x[3])
+elif sort_by == "Deadline":
+    filtered_data.sort(key=lambda x: x[5])
 else:
     filtered_data.sort(key=lambda x: x[4], reverse=True)
     
@@ -234,9 +306,17 @@ if not filtered_data:
 else:
     # Table View
     df = pd.DataFrame(
-        filtered_data,
-        columns=["ID", "Company", "Position", "Status", "Date Applied", "Notes"]
-    )
+    filtered_data,
+    columns=[
+        "ID",
+        "Company",
+        "Position",
+        "Status",
+        "Date Applied",
+        "Deadline",
+        "Notes"
+    ]
+)
 
     st.dataframe(df, use_container_width=True)
     
@@ -265,10 +345,10 @@ else:
         deadline_value = app[5]
         notes_value = app[6]
 
-        #Calculate days until deadline
+        # Calculate days until deadline
         days_remaining = (
             pd.to_datetime(deadline_value)
-            - pd.Timestamp.today()
+            - pd.Timestamp.today().normalize()
         ).days
 
         col1, col2, col3 = st.columns([4, 1, 1])
@@ -282,20 +362,22 @@ else:
             )
 
             if days_remaining < 0:
-                st.error(f"Deadline passed ({abs(days_remaining)} days ago)")
+                st.error(
+                    f"Deadline passed ({abs(days_remaining)} days ago)"
+                )
             elif days_remaining <= 7:
-                st.warning(f"{days_remaining} days remaining")
+                st.warning(
+                    f"{days_remaining} days remaining"
+                )
             else:
-                st.success(f"{days_remaining} days remaining")
+                st.success(
+                    f"{days_remaining} days remaining"
+                )
 
             st.caption(
                 f"Applied: {date_value} | Deadline: {deadline_value}"
             )
 
-    with st.expander("Notes"):
-        st.write(notes_value)
-        with col1:
-            st.write(f"**{company_name}** | {position_name} | {status_value} | {date_value}")
             with st.expander("Notes"):
                 st.write(notes_value)
 
@@ -304,7 +386,7 @@ else:
             if st.button("Edit", key=f"edit_{app_id}"):
                 st.session_state.edit_id = app_id
 
-        # Delete Button
+        # Delete button
         with col3:
             if st.button("Delete", key=f"delete_{app_id}"):
                 delete_application(app_id)
@@ -319,48 +401,57 @@ if "edit_id" in st.session_state:
 
     edit_id = st.session_state.edit_id
 
-    # finds record
+    # Find record
     record = [a for a in data if a[0] == edit_id][0]
 
     company_edit = st.text_input(
-    "Company",
-    record[1],
-    key=f"company_edit_{edit_id}"
+        "Company",
+        record[1],
+        key=f"company_edit_{edit_id}"
     )
 
     position_edit = st.text_input(
-    "Position",
-    record[2],
-    key=f"position_edit_{edit_id}"
+        "Position",
+        record[2],
+        key=f"position_edit_{edit_id}"
     )
 
     status_edit = st.selectbox(
-    "Status",
-    ["Applied", "Interview", "Rejected", "Offer"],
-    index=["Applied", "Interview", "Rejected", "Offer"].index(record[3]),
-    key=f"status_edit_{edit_id}"
+        "Status",
+        ["Applied", "Interview", "Rejected", "Offer"],
+        index=["Applied", "Interview", "Rejected", "Offer"].index(record[3]),
+        key=f"status_edit_{edit_id}"
     )
 
     date_edit = st.date_input(
-    "Date Applied",
-    value=pd.to_datetime(record[4]),
-    key=f"date_edit_{edit_id}"
+        "Date Applied",
+        value=pd.to_datetime(record[4]),
+        key=f"date_edit_{edit_id}"
+    )
+
+    deadline_edit = st.date_input(
+        "Application Deadline",
+        value=pd.to_datetime(record[5]),
+        key=f"deadline_edit_{edit_id}"
     )
 
     notes_edit = st.text_area(
-    "Notes",
-    record[5],
-    key=f"notes_edit_{edit_id}"
-    )  
-     
-    if st.button("Save Changes",
-                 key=f"save_{edit_id}"):
+        "Notes",
+        record[6],
+        key=f"notes_edit_{edit_id}"
+    )
+
+    if st.button(
+        "Save Changes",
+        key=f"save_{edit_id}"
+    ):
         update_application(
             edit_id,
             company_edit,
             position_edit,
             status_edit,
-            date_edit,
+            str(date_edit),
+            str(deadline_edit),
             notes_edit
         )
 

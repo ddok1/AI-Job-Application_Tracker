@@ -1,8 +1,9 @@
 import sqlite3
+from pathlib import Path
 
-# Path to the SQLite database file
-# If it doesn't exist, it will be created
-DB_PATH = "data/job_tracker.db"
+BASE_DIR = Path(__file__).resolve().parent.parent
+DB_PATH = BASE_DIR / "data" / "job_tracker.db"
+SCHEMA_PATH = BASE_DIR / "database" / "schema.sql"
 
 # Create and returns a connection to the SQLite database
 # Returns sqlite3.Connection: Active database connection object
@@ -11,11 +12,13 @@ def get_connection():
 
 # Initializes the database by executing the SQL schema file
 def init_db():
+    DB_PATH.parent.mkdir(exist_ok=True)
+
     conn = get_connection()
     cursor = conn.cursor()
 
     # Open and rad the schema file that contains SQL table
-    with open("database/schema.sql", "r") as f:
+    with open(SCHEMA_PATH, "r") as f:
         cursor.executescript(f.read())
 
     # Saves and closes
