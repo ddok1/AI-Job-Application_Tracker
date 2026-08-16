@@ -46,6 +46,29 @@ if st.button("Add Application"):
         st.error("Company and Position required")
 st.divider()
 
+# AI Job Description Analyzer
+st.divider()
+
+st.header("AI Job Description Analyzer")
+
+job_description = st.text_area(
+    "Paste a job description",
+    height=250,
+    key="job_description"
+)
+
+if st.button("Analyze Job Description"):
+    if job_description.strip():
+        with st.spinner("Analyzing job description..."):
+            from services.ai_service import analyze_job_description
+
+            analysis = analyze_job_description(job_description)
+
+        st.subheader("AI Analysis")
+        st.write(analysis)
+    else:
+        st.warning("Please paste a job description first.")
+
 # Dashboard
 st.header("📋 Applications Dashboard")
 
