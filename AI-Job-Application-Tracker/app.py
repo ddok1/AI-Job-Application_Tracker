@@ -3,6 +3,10 @@ import pandas as pd
 import plotly.express as px
 
 from database.db import init_db
+from services.ai_service import (
+    analyze_job_description,
+    analyze_resume_match
+)
 
 from services.application_service import (
     add_application,
@@ -60,7 +64,6 @@ job_description = st.text_area(
 if st.button("Analyze Job Description"):
     if job_description.strip():
         with st.spinner("Analyzing job description..."):
-            from services.ai_service import analyze_job_description
 
             analysis = analyze_job_description(job_description)
 
@@ -68,6 +71,57 @@ if st.button("Analyze Job Description"):
         st.write(analysis)
     else:
         st.warning("Please paste a job description first.")
+
+# Resume Upload
+st.divider()
+
+st.header("Resume Upload")
+
+uploaded_resume = st.file_uploader(
+    "Upload your resume",
+    type=["pdf"]
+)
+
+if uploaded_resume is not None:
+    from PyPDF2 import PdfReader
+
+    reader = PdfReader(uploaded_resume)
+
+    resume_text = ""
+
+    for page in reader.pages:
+        text = page.extract_text()
+
+        if text:
+            resume_text += text + "\n"
+
+    # Clean up extracted PDF text
+    resume_text = resume_text.replace("\n", " ")
+    resume_text = " ".join(resume_text.split())
+
+    st.subheader("Extracted Resume Text")
+
+    st.text_area(
+        "Resume Content",
+        resume_text,
+        height=400
+    )
+    if job_description.strip():
+
+        if st.button("🤖 Analyze Resume Match"):
+
+            with st.spinner("Comparing resume with job description..."):
+
+                analysis = analyze_resume_match(
+                    resume_text,
+                    job_description
+                )
+
+            st.subheader("🎯 Resume Match Analysis")
+            st.write(analysis)
+
+    else:
+        st.info("Paste a job description above to analyze your resume.")
 
 # Dashboard
 st.header("📋 Applications Dashboard")

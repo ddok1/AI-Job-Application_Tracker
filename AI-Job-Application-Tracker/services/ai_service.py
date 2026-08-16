@@ -43,3 +43,26 @@ def analyze_job_description(job_description):
     """
 
     return generate_ai_response(prompt)
+
+def analyze_resume_match(resume_text, job_description):
+    prompt = f"""
+    Compare the following resume against the job description.
+
+    Provide the following:
+
+    1. Overall match score from 0-100
+    2. Technical skills that match
+    3. Technical skills that are missing or weak
+    4. Relevant experience from the resume
+    5. Education relevance
+    6. Important job requirements the candidate does not currently demonstrate
+    7. Three specific recommendations for improving the candidate's chances
+
+    Resume:
+    {resume_text}
+
+    Job Description:
+    {job_description}
+    """
+
+    return generate_ai_response(prompt)
