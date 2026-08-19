@@ -5,7 +5,8 @@ import plotly.express as px
 from database.db import init_db
 from services.ai_service import (
     analyze_job_description,
-    analyze_resume_match
+    analyze_resume_match,
+    generate_cover_letter
 )
 
 from services.application_service import (
@@ -122,6 +123,36 @@ if uploaded_resume is not None:
 
     else:
         st.info("Paste a job description above to analyze your resume.")
+
+# AI Cover Letter Generator
+st.divider()
+
+st.header("✉️ AI Cover Letter Generator")
+
+if uploaded_resume is not None and job_description.strip():
+
+    if st.button("Generate Cover Letter"):
+
+        with st.spinner("Generating tailored cover letter..."):
+
+            cover_letter = generate_cover_letter(
+                resume_text,
+                job_description
+            )
+
+        st.subheader("Generated Cover Letter")
+
+        st.text_area(
+            "Cover Letter",
+            cover_letter,
+            height=500
+        )
+
+else:
+    st.info(
+        "Upload a resume and paste a job description "
+        "to generate a tailored cover letter."
+    )
 
 # Dashboard
 st.header("📋 Applications Dashboard")

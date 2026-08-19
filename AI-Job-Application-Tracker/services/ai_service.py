@@ -66,3 +66,29 @@ def analyze_resume_match(resume_text, job_description):
     """
 
     return generate_ai_response(prompt)
+
+def generate_cover_letter(resume_text, job_description):
+    prompt = f"""
+    Write a professional, tailored cover letter for the following job.
+
+    Use only information supported by the resume.
+    Do not invent work experience, skills, education, certifications,
+    or accomplishments.
+
+    The cover letter should:
+    - Be approximately 3-4 paragraphs
+    - Be professional but natural
+    - Explain why the candidate is interested in the position
+    - Highlight the most relevant experience and skills
+    - Connect the candidate's background to the job requirements
+    - Avoid generic filler
+    - Not include a fake company address or hiring manager name
+
+    Resume:
+    {resume_text}
+
+    Job Description:
+    {job_description}
+    """
+
+    return generate_ai_response(prompt)
