@@ -2,7 +2,7 @@ from database.db import get_connection
 
 
 # CREATE
-def add_application(company, position, status, date_applied, deadline, notes):
+def add_application(company, position, status, date_applied, deadline, notes, job_description):
     """
     Adds a new job application to the database
     """
@@ -10,9 +10,9 @@ def add_application(company, position, status, date_applied, deadline, notes):
     cursor = conn.cursor()
 
     cursor.execute("""
-        INSERT INTO applications (company, position, status, date_applied, deadline, notes)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (company, position, status, date_applied, deadline, notes))
+        INSERT INTO applications (company, position, status, date_applied, deadline, notes, job_description)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (company, position, status, date_applied, deadline, notes, job_description))
 
     conn.commit()
     conn.close()
@@ -41,7 +41,8 @@ def update_application(
     status,
     date_applied,
     deadline,
-    notes
+    notes,
+    job_description
 ):
     """
     Updates an existing job application
@@ -56,7 +57,8 @@ def update_application(
             status = ?,
             date_applied = ?,
             deadline = ?,
-            notes = ?
+            notes = ?,
+            job_description = ?
         WHERE id = ?
     """, (
         company,
@@ -65,7 +67,8 @@ def update_application(
         date_applied,
         deadline,
         notes,
-        app_id
+        app_id,
+        job_description
     ))
 
     conn.commit()

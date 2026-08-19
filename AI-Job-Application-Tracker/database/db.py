@@ -21,6 +21,23 @@ def init_db():
     with open(SCHEMA_PATH, "r") as f:
         cursor.executescript(f.read())
 
+    cursor.execute(
+        "PRAGMA table_info(applications)"
+    )
+    
+    columns = [
+        column[1]
+        for column in cursor.fetchall()
+    ]
+
+    if "job_description" not in columns:
+        cursor.execute(
+            """
+            ALTER TABLE applications
+            ADD COLUMN job_description TEXT
+            """
+        )
+
     # Saves and closes
     conn.commit()
     conn.close()
